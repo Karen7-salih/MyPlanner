@@ -1,5 +1,7 @@
+import Layout from './components/LayoutArea/Layout/Layout';
+
 function App() {
-  return <div>My Planner App</div>;
+  return <Layout />;
 }
 
 export default App;
