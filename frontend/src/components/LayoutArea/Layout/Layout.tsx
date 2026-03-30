@@ -11,21 +11,23 @@ import Page404 from '../../Pages/Page404/Page404';
 
 function Layout() {
   return (
-    <div className="layout-shell">
+    <div className="min-h-screen bg-[#f9f4ef] text-[#2f2a26]">
       <Header />
 
-      <div className="layout-body">
+      <div className="flex min-h-[calc(100vh-72px-56px)]">
         <Sidebar />
 
-        <main className="layout-content">
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/weekly" element={<WeeklyPage />} />
-            <Route path="/study" element={<StudyPage />} />
-            <Route path="/money" element={<MoneyPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<Page404 />} />
-          </Routes>
+        <main className="flex-1 bg-[#fcfaf8] px-6 py-6 md:px-8 md:py-8">
+          <div className="mx-auto max-w-7xl">
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/weekly" element={<WeeklyPage />} />
+              <Route path="/study" element={<StudyPage />} />
+              <Route path="/money" element={<MoneyPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Page404 />} />
+            </Routes>
+          </div>
         </main>
       </div>
 
