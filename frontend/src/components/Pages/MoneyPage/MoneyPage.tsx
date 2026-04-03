@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
+import { STORAGE_KEYS, loadFromLocalStorage, saveToLocalStorage } from '../../utils/localStorage';
 import {
     DndContext,
     DragOverlay,
@@ -115,63 +116,63 @@ function MoneyCard({ item, columnId, onDelete, onEdit }: MoneyCardProps) {
             className={`rounded-[22px] border border-[#eadfd7] bg-white p-4 shadow-sm transition ${isDragging ? 'scale-[0.98] opacity-60 shadow-md' : 'hover:shadow-md'
                 }`}
         >
-         <div
-    className="cursor-pointer rounded-[18px] transition"
-    onClick={() => onEdit(item, columnId)}
-    role="button"
-    tabIndex={0}
-    onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onEdit(item, columnId);
-        }
-    }}
->
-    <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-1 items-start gap-3">
-            <button
-                type="button"
-                className="mt-0.5 cursor-grab rounded-full px-1 text-[#b08f82] transition hover:bg-[#f7ece6] active:cursor-grabbing"
-                aria-label={`Drag ${item.title}`}
-                onClick={(event) => event.stopPropagation()}
-                onPointerDown={(event) => event.stopPropagation()}
-                {...attributes}
-                {...listeners}
+            <div
+                className="cursor-pointer rounded-[18px] transition"
+                onClick={() => onEdit(item, columnId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onEdit(item, columnId);
+                    }
+                }}
             >
-                ⋮⋮
-            </button>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-1 items-start gap-3">
+                        <button
+                            type="button"
+                            className="mt-0.5 cursor-grab rounded-full px-1 text-[#b08f82] transition hover:bg-[#f7ece6] active:cursor-grabbing"
+                            aria-label={`Drag ${item.title}`}
+                            onClick={(event) => event.stopPropagation()}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            {...attributes}
+                            {...listeners}
+                        >
+                            ⋮⋮
+                        </button>
 
-            <div className="flex-1">
-                <h3 className="text-base font-semibold text-[#3c312c]">
-                    {item.title}
-                </h3>
+                        <div className="flex-1">
+                            <h3 className="text-base font-semibold text-[#3c312c]">
+                                {item.title}
+                            </h3>
 
-                {item.notes ? (
-                    <p className="mt-1 text-sm text-[#6f625b]">
-                        {item.notes}
-                    </p>
-                ) : null}
+                            {item.notes ? (
+                                <p className="mt-1 text-sm text-[#6f625b]">
+                                    {item.notes}
+                                </p>
+                            ) : null}
 
-                {typeof item.amount === 'number' ? (
-                    <div className="mt-3 inline-flex rounded-full bg-[#f6ebe5] px-3 py-1 text-sm font-medium text-[#7b5f55]">
-                        ₪{item.amount}
+                            {typeof item.amount === 'number' ? (
+                                <div className="mt-3 inline-flex rounded-full bg-[#f6ebe5] px-3 py-1 text-sm font-medium text-[#7b5f55]">
+                                    ₪{item.amount}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                ) : null}
-            </div>
-        </div>
 
-        <button
-            type="button"
-            onClick={(event) => {
-                event.stopPropagation();
-                onDelete(item.id, columnId);
-            }}
-            className="shrink-0 rounded-full border border-[#eadfd7] bg-white px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-[#f9ece8] hover:text-[#7c5a50]"
-        >
-            Delete
-        </button>
-    </div>
-</div>
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete(item.id, columnId);
+                        }}
+                        className="shrink-0 rounded-full border border-[#eadfd7] bg-white px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-[#f9ece8] hover:text-[#7c5a50]"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
 
         </div>
     );
@@ -320,13 +321,18 @@ function MoneyColumnView({
 
 
 function MoneyPage() {
-    const [board, setBoard] = useState<MoneyBoard>(initialBoard);
+    const [board, setBoard] = useState<MoneyBoard>(() =>
+        loadFromLocalStorage<MoneyBoard>(STORAGE_KEYS.moneyBoard, initialBoard)
+    );
     const [activeItemId, setActiveItemId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [notes, setNotes] = useState('');
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [activeColumnForForm, setActiveColumnForForm] = useState<MoneyColumnId | null>(null);
+    useEffect(() => {
+        saveToLocalStorage(STORAGE_KEYS.moneyBoard, board);
+    }, [board]);
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {

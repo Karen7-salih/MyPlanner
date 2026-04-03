@@ -1,9 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  STORAGE_KEYS,
+  loadFromLocalStorage,
+  saveToLocalStorage,
+  removeFromLocalStorage,
+} from '../../utils/localStorage';
 
 type ThemeMode = 'light' | 'soft' | 'dark';
 type DensityMode = 'spacious' | 'balanced' | 'compact';
 type DefaultPage = 'dashboard' | 'weekly' | 'study' | 'money';
 type WeekStart = 'sunday' | 'monday';
+
+type PlannerSettings = {
+  theme: ThemeMode;
+  density: DensityMode;
+  defaultPage: DefaultPage;
+  weekStart: WeekStart;
+};
+
+const defaultSettings: PlannerSettings = {
+  theme: 'soft',
+  density: 'balanced',
+  defaultPage: 'dashboard',
+  weekStart: 'sunday',
+};
 
 type Option<T extends string> = {
   value: T;
@@ -80,11 +100,10 @@ function SettingsDropdown<T extends string>({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex w-full items-center justify-between rounded-2xl border bg-[#fffaf7] px-4 py-3 text-left text-[#3c312c] outline-none transition ${
-          open
+        className={`flex w-full items-center justify-between rounded-2xl border bg-[#fffaf7] px-4 py-3 text-left text-[#3c312c] outline-none transition ${open
             ? 'border-[#c9aea1] shadow-[0_0_0_3px_rgba(201,174,161,0.12)]'
             : 'border-[#eadfd7] hover:border-[#d8c7bd]'
-        }`}
+          }`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -113,11 +132,10 @@ function SettingsDropdown<T extends string>({
                   key={option.value}
                   type="button"
                   onClick={() => onSelect(option.value)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left text-sm transition ${
-                    isSelected
+                  className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left text-sm transition ${isSelected
                       ? 'bg-[#f7ece6] text-[#3c312c]'
                       : 'text-[#5f544d] hover:bg-[#fcf7f4]'
-                  }`}
+                    }`}
                   role="option"
                   aria-selected={isSelected}
                 >
@@ -146,10 +164,15 @@ function SettingsDropdown<T extends string>({
 }
 
 function SettingsPage() {
-  const [theme, setTheme] = useState<ThemeMode>('soft');
-  const [density, setDensity] = useState<DensityMode>('balanced');
-  const [defaultPage, setDefaultPage] = useState<DefaultPage>('dashboard');
-  const [weekStart, setWeekStart] = useState<WeekStart>('sunday');
+  const savedSettings = loadFromLocalStorage<PlannerSettings>(
+    STORAGE_KEYS.settings,
+    defaultSettings
+  );
+
+  const [theme, setTheme] = useState<ThemeMode>(savedSettings.theme);
+  const [density, setDensity] = useState<DensityMode>(savedSettings.density);
+  const [defaultPage, setDefaultPage] = useState<DefaultPage>(savedSettings.defaultPage);
+  const [weekStart, setWeekStart] = useState<WeekStart>(savedSettings.weekStart);
 
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isDensityOpen, setIsDensityOpen] = useState(false);
@@ -168,6 +191,15 @@ function SettingsPage() {
     root.setAttribute('data-density', density);
     root.setAttribute('data-default-page', defaultPage);
     root.setAttribute('data-week-start', weekStart);
+  }, [theme, density, defaultPage, weekStart]);
+
+  useEffect(() => {
+    saveToLocalStorage(STORAGE_KEYS.settings, {
+      theme,
+      density,
+      defaultPage,
+      weekStart,
+    });
   }, [theme, density, defaultPage, weekStart]);
 
   useEffect(() => {
@@ -209,15 +241,17 @@ function SettingsPage() {
   }, []);
 
   const resetSettings = () => {
-    setTheme('soft');
-    setDensity('balanced');
-    setDefaultPage('dashboard');
-    setWeekStart('sunday');
+    setTheme(defaultSettings.theme);
+    setDensity(defaultSettings.density);
+    setDefaultPage(defaultSettings.defaultPage);
+    setWeekStart(defaultSettings.weekStart);
 
     setIsThemeOpen(false);
     setIsDensityOpen(false);
     setIsDefaultPageOpen(false);
     setIsWeekStartOpen(false);
+
+    removeFromLocalStorage(STORAGE_KEYS.settings);
   };
 
   return (

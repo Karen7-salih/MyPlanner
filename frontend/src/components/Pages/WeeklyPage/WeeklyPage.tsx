@@ -7,6 +7,14 @@ import type {
   WeeklyTask,
   WeeklyTaskCategory,
 } from '../../models/weekly.models';
+import { STORAGE_KEYS, loadFromLocalStorage, saveToLocalStorage } from '../../utils/localStorage';
+
+function getInitialWeeklyWeek() {
+  return loadFromLocalStorage<WeeklyPlannerWeek>(
+    STORAGE_KEYS.weeklyWeek,
+    initialWeeklyWeek
+  );
+}
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const categoryOptions: {
@@ -179,8 +187,13 @@ function ChevronDownIcon({ open }: { open: boolean }) {
 }
 
 function WeeklyPage() {
-  const [weeklyWeek, setWeeklyWeek] = useState<WeeklyPlannerWeek>(initialWeeklyWeek);
-  const [selectedDate, setSelectedDate] = useState<string>(initialWeeklyWeek.days[0].date);
+  const savedWeeklyWeek = loadFromLocalStorage<WeeklyPlannerWeek>(
+    STORAGE_KEYS.weeklyWeek,
+    initialWeeklyWeek
+  );
+
+  const [weeklyWeek, setWeeklyWeek] = useState<WeeklyPlannerWeek>(getInitialWeeklyWeek);
+  const [selectedDate, setSelectedDate] = useState<string>(() => getInitialWeeklyWeek().days[0].date);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<WeeklyTaskCategory>('study');
   const [notes, setNotes] = useState('');
@@ -190,6 +203,9 @@ function WeeklyPage() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
   const [isDayDropdownOpen, setIsDayDropdownOpen] = useState(false);
+  useEffect(() => {
+    saveToLocalStorage(STORAGE_KEYS.weeklyWeek, weeklyWeek);
+  }, [weeklyWeek]);
   const dayDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const totalTasks = useMemo(
@@ -647,47 +663,47 @@ function WeeklyPage() {
                       key={task.id}
                       className={`rounded-[24px] border-[1.5px] p-4 shadow-[0_1px_2px_rgba(60,49,44,0.04)] ${categoryMeta.color}`}
                     >
-                   <div className="mb-3">
-  <div className="-ml-2 flex items-center justify-between gap-3">
-  <div className="-mr-1 flex items-center gap-1.5">
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${categoryMeta.badge}`}
-    >
-      {categoryMeta.label}
-    </span>
-  </div>
+                      <div className="mb-3">
+                        <div className="-ml-2 flex items-center justify-between gap-3">
+                          <div className="-mr-1 flex items-center gap-1.5">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${categoryMeta.badge}`}
+                            >
+                              {categoryMeta.label}
+                            </span>
+                          </div>
 
-  <div className="flex items-center gap-1.5">
-    <button
-      type="button"
-      onClick={() => handleEditTask(task, day.date)}
-      className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
-    >
-      Edit
-    </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleEditTask(task, day.date)}
+                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+                            >
+                              Edit
+                            </button>
 
-    <button
-      type="button"
-      onClick={() => handleDeleteTask(task.id, day.date)}
-      className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
-    >
-      Delete
-    </button>
-  </div>
-</div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTask(task.id, day.date)}
+                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
 
-  {task.title ? (
-    <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
-      {task.title}
-    </h4>
-  ) : null}
+                        {task.title ? (
+                          <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
+                            {task.title}
+                          </h4>
+                        ) : null}
 
-  {task.notes ? (
-    <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
-      {task.notes}
-    </p>
-  ) : null}
-</div>
+                        {task.notes ? (
+                          <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+                            {task.notes}
+                          </p>
+                        ) : null}
+                      </div>
 
                       {task.checklist.length > 0 ? (
                         <div className="space-y-2">

@@ -7,6 +7,14 @@ import type {
   StudySubject,
   StudyTask,
 } from '../../models/study.models';
+import { STORAGE_KEYS, loadFromLocalStorage, saveToLocalStorage } from '../../utils/localStorage';
+
+function getInitialStudyWeek() {
+  return loadFromLocalStorage<StudyPlannerWeek>(
+    STORAGE_KEYS.studyWeek,
+    initialStudyWeek
+  );
+}
 const studySubjects: {
   value: StudySubject;
   label: string;
@@ -182,8 +190,8 @@ function calculateTaskProgress(task: StudyTask) {
 }
 
 function StudyPage() {
-  const [studyWeek, setStudyWeek] = useState<StudyPlannerWeek>(initialStudyWeek);
-  const [selectedDate, setSelectedDate] = useState<string>(initialStudyWeek.days[0].date);
+  const [studyWeek, setStudyWeek] = useState<StudyPlannerWeek>(getInitialStudyWeek);
+  const [selectedDate, setSelectedDate] = useState<string>(() => getInitialStudyWeek().days[0].date);
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState<StudySubject>('math');
   const [notes, setNotes] = useState('');
@@ -194,6 +202,9 @@ function StudyPage() {
   const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
   const dayDropdownRef = useRef<HTMLDivElement | null>(null);
   const subjectDropdownRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    saveToLocalStorage(STORAGE_KEYS.studyWeek, studyWeek);
+  }, [studyWeek]);
 
   const overallProgress = useMemo(() => {
     const checklistItems = studyWeek.days.flatMap((day) =>
@@ -449,8 +460,8 @@ function StudyPage() {
                 type="button"
                 onClick={() => setIsDayDropdownOpen((prev) => !prev)}
                 className={`flex w-full items-center justify-between rounded-2xl border bg-[#fffaf7] px-4 py-3 text-left text-[#3c312c] outline-none transition ${isDayDropdownOpen
-                    ? 'border-[#c9aea1] shadow-[0_0_0_3px_rgba(201,174,161,0.12)]'
-                    : 'border-[#eadfd7] hover:border-[#d8c7bd]'
+                  ? 'border-[#c9aea1] shadow-[0_0_0_3px_rgba(201,174,161,0.12)]'
+                  : 'border-[#eadfd7] hover:border-[#d8c7bd]'
                   }`}
                 aria-haspopup="listbox"
                 aria-expanded={isDayDropdownOpen}
@@ -479,8 +490,8 @@ function StudyPage() {
                             setIsDayDropdownOpen(false);
                           }}
                           className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition ${isSelected
-                              ? 'bg-[#f7ece6] text-[#3c312c]'
-                              : 'text-[#5f544d] hover:bg-[#fcf7f4]'
+                            ? 'bg-[#f7ece6] text-[#3c312c]'
+                            : 'text-[#5f544d] hover:bg-[#fcf7f4]'
                             }`}
                           role="option"
                           aria-selected={isSelected}
@@ -505,8 +516,8 @@ function StudyPage() {
                 type="button"
                 onClick={() => setIsSubjectDropdownOpen((prev) => !prev)}
                 className={`flex w-full items-center justify-between rounded-2xl border bg-[#fffaf7] px-4 py-3 text-left text-[#3c312c] outline-none transition ${isSubjectDropdownOpen
-                    ? 'border-[#c9aea1] shadow-[0_0_0_3px_rgba(201,174,161,0.12)]'
-                    : 'border-[#eadfd7] hover:border-[#d8c7bd]'
+                  ? 'border-[#c9aea1] shadow-[0_0_0_3px_rgba(201,174,161,0.12)]'
+                  : 'border-[#eadfd7] hover:border-[#d8c7bd]'
                   }`}
                 aria-haspopup="listbox"
                 aria-expanded={isSubjectDropdownOpen}
@@ -536,8 +547,8 @@ function StudyPage() {
                             setIsSubjectDropdownOpen(false);
                           }}
                           className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm transition ${isSelected
-                              ? 'bg-[#f7ece6] text-[#3c312c]'
-                              : 'text-[#5f544d] hover:bg-[#fcf7f4]'
+                            ? 'bg-[#f7ece6] text-[#3c312c]'
+                            : 'text-[#5f544d] hover:bg-[#fcf7f4]'
                             }`}
                           role="option"
                           aria-selected={isSelected}
@@ -677,47 +688,47 @@ function StudyPage() {
                       key={task.id}
                       className={`rounded-[24px] border-[1.5px] p-4 shadow-[0_1px_2px_rgba(60,49,44,0.04)] ${subjectMeta.card}`}
                     >
-                     <div className="mb-3">
-<div className="-ml-2 flex items-center justify-between gap-3">
-  <div className="-mr-1 flex items-center gap-2">
-        <span
-        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subjectMeta.badge}`}
-      >
-        {subjectMeta.label}
-      </span>
-    </div>
+                      <div className="mb-3">
+                        <div className="-ml-2 flex items-center justify-between gap-3">
+                          <div className="-mr-1 flex items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subjectMeta.badge}`}
+                            >
+                              {subjectMeta.label}
+                            </span>
+                          </div>
 
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => handleEditTask(task, day.date)}
-        className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
-      >
-        Edit
-      </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditTask(task, day.date)}
+                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+                            >
+                              Edit
+                            </button>
 
-      <button
-        type="button"
-        onClick={() => handleDeleteTask(task.id, day.date)}
-        className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
-      >
-        Delete
-      </button>
-    </div>
-  </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTask(task.id, day.date)}
+                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
 
-  {task.title ? (
-    <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
-      {task.title}
-    </h4>
-  ) : null}
+                        {task.title ? (
+                          <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
+                            {task.title}
+                          </h4>
+                        ) : null}
 
-  {task.notes ? (
-    <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
-      {task.notes}
-    </p>
-  ) : null}
-</div>
+                        {task.notes ? (
+                          <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+                            {task.notes}
+                          </p>
+                        ) : null}
+                      </div>
 
                       <div className="mb-3">
                         <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#6f625b]">
