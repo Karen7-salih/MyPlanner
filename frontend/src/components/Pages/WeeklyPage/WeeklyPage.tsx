@@ -187,6 +187,7 @@ function ChevronDownIcon({ open }: { open: boolean }) {
 }
 
 function WeeklyPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const savedWeeklyWeek = loadFromLocalStorage<WeeklyPlannerWeek>(
     STORAGE_KEYS.weeklyWeek,
     initialWeeklyWeek
