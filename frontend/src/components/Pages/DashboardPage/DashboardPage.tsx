@@ -114,12 +114,11 @@ function DashboardPage() {
                 <img
                     src={dashboardBanner}
                     alt="dashboard banner"
-                    className="h-[300px] w-full object-cover object-bottom transition-transform duration-700 ease-out hover:scale-[1.01]" />
+            className="h-[300px] w-full object-cover object-[45%_56%] transition-transform duration-700 ease-out hover:scale-[1.01]"/>
 
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5" />
 
-                <div className="absolute right-5 top-5 flex flex-col items-end gap-3 md:right-6 md:top-6">
-                    <div className="rounded-full border border-white/70 bg-white/80 px-4 py-2 text-sm font-medium text-[#5f524b] shadow-[0_8px_24px_rgba(60,49,44,0.08)] backdrop-blur-md">
+<div className="absolute right-4 top-4 z-10 flex max-w-[calc(100%-2rem)] flex-col items-end gap-3 md:right-6 md:top-6 md:max-w-[420px]">                    <div className="rounded-full border border-white/70 bg-white/80 px-4 py-2 text-sm font-medium text-[#5f524b] shadow-[0_8px_24px_rgba(60,49,44,0.08)] backdrop-blur-md">
                         {formattedDate}
                     </div>
 

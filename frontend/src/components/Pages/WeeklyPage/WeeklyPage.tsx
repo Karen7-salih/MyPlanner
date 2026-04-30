@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type {
   WeeklyChecklistItem,
   WeeklyDay,
@@ -186,10 +203,236 @@ function ChevronDownIcon({ open }: { open: boolean }) {
   );
 }
 
+type WeeklyTaskCardProps = {
+  task: WeeklyTask;
+  dayDate: string;
+  categoryLabel: string;
+  categoryBadge: string;
+  categoryColor: string;
+  onEdit: (task: WeeklyTask, dayDate: string) => void;
+  onDuplicate: (task: WeeklyTask, dayDate: string) => void;
+  onDelete: (taskId: string, dayDate: string) => void;
+  onToggleChecklist: (dayDate: string, taskId: string, checklistId: string) => void;
+};
+
+function WeeklyTaskCard({
+  task,
+  dayDate,
+  categoryLabel,
+  categoryBadge,
+  categoryColor,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onToggleChecklist,
+}: WeeklyTaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({
+      id: task.id,
+      data: {
+        type: 'weekly-task',
+        dayDate,
+      },
+    });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-[18px] border p-4 transition ${categoryColor} ${
+        isDragging ? 'scale-[0.98] opacity-60 shadow-md' : 'hover:shadow-md'
+      }`}
+    >
+      <div className="mb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="cursor-grab rounded-full px-1 text-[#b08f82] transition hover:bg-white/70 active:cursor-grabbing"
+            aria-label={`Drag ${task.title ?? 'task'}`}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            {...attributes}
+            {...listeners}
+          >
+            ⋮⋮
+          </button>
+
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${categoryBadge}`}
+          >
+            {categoryLabel}
+          </span>
+        </div>
+
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="flex-1">
+            {task.title ? (
+              <h4 className="break-words text-base font-semibold text-[#3c312c]">
+                {task.title}
+              </h4>
+            ) : null}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onEdit(task, dayDate)}
+              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onDuplicate(task, dayDate)}
+              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+            >
+              Duplicate
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onDelete(task.id, dayDate)}
+              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+
+        {task.notes ? (
+          <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+            {task.notes}
+          </p>
+        ) : null}
+      </div>
+
+      {task.checklist.length > 0 ? (
+        <div className="space-y-2">
+          {task.checklist.map((item) => (
+            <label
+              key={item.id}
+              className="flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-sm text-[#4f433d]"
+            >
+              <input
+                type="checkbox"
+                checked={item.completed}
+                onChange={() => onToggleChecklist(dayDate, task.id, item.id)}
+                className="h-4 w-4 accent-[#7b5f55]"
+              />
+              <span className={item.completed ? 'line-through opacity-60' : ''}>
+                {item.text}
+              </span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-[18px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
+          Nothing planned yet
+        </div>
+      )}
+    </div>
+  );
+}
+
+type WeeklyDayColumnProps = {
+  day: WeeklyDay;
+  isLast: boolean;
+  tasks: WeeklyTask[];
+  onEdit: (task: WeeklyTask, dayDate: string) => void;
+  onDuplicate: (task: WeeklyTask, dayDate: string) => void;
+  onDelete: (taskId: string, dayDate: string) => void;
+  onToggleChecklist: (dayDate: string, taskId: string, checklistId: string) => void;
+};
+
+function WeeklyDayColumn({
+  day,
+  isLast,
+  tasks,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onToggleChecklist,
+}: WeeklyDayColumnProps) {
+  const { setNodeRef } = useDroppable({
+    id: day.date,
+    data: {
+      type: 'weekly-day',
+      dayDate: day.date,
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[420px] bg-white ${!isLast ? 'border-r border-[#eadfd7]' : ''}`}
+    >
+      <div className="border-b border-[#eadfd7] bg-[#fcfaf8] px-5 py-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[#b08f82]">
+          {day.dayName}
+        </p>
+        <h3 className="mt-1 text-base font-semibold text-[#3c312c]">
+          {formatDateLabel(new Date(day.date))}
+        </h3>
+      </div>
+
+      <SortableContext
+        items={tasks.map((task) => task.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-3 p-4">
+          {tasks.length > 0 ? (
+            tasks.map((task) => {
+              const categoryMeta =
+                categoryOptions.find((option) => option.value === task.category) ??
+                categoryOptions[6];
+
+              return (
+                <WeeklyTaskCard
+                  key={task.id}
+                  task={task}
+                  dayDate={day.date}
+                  categoryLabel={categoryMeta.label}
+                  categoryBadge={categoryMeta.badge}
+                  categoryColor={categoryMeta.color}
+                  onEdit={onEdit}
+                  onDuplicate={onDuplicate}
+                  onDelete={onDelete}
+                  onToggleChecklist={onToggleChecklist}
+                />
+              );
+            })
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
+              Nothing planned yet
+            </div>
+          )}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
 function WeeklyPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const savedWeeklyWeek = loadFromLocalStorage<WeeklyPlannerWeek>(
     STORAGE_KEYS.weeklyWeek,
     initialWeeklyWeek
+  );
+
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    })
   );
 
   const [weeklyWeek, setWeeklyWeek] = useState<WeeklyPlannerWeek>(getInitialWeeklyWeek);
@@ -207,25 +450,6 @@ function WeeklyPage() {
     saveToLocalStorage(STORAGE_KEYS.weeklyWeek, weeklyWeek);
   }, [weeklyWeek]);
   const dayDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  const totalTasks = useMemo(
-    () => weeklyWeek.days.reduce((sum, day) => sum + day.tasks.length, 0),
-    [weeklyWeek]
-  );
-
-  const completedChecklistCount = useMemo(
-    () =>
-      weeklyWeek.days.reduce(
-        (sum, day) =>
-          sum +
-          day.tasks.reduce(
-            (taskSum, task) => taskSum + task.checklist.filter((item) => item.completed).length,
-            0
-          ),
-        0
-      ),
-    [weeklyWeek]
-  );
 
   const resetForm = () => {
     setTitle('');
@@ -331,6 +555,30 @@ function WeeklyPage() {
     }
   };
 
+    const handleDuplicateTask = (task: WeeklyTask, dayDate: string) => {
+    const now = new Date().toISOString();
+
+    const duplicatedTask: WeeklyTask = {
+      ...task,
+      id: crypto.randomUUID(),
+      checklist: task.checklist.map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+      })),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setWeeklyWeek((prev) => ({
+      ...prev,
+      days: prev.days.map((day) =>
+        day.date === dayDate
+          ? { ...day, tasks: [duplicatedTask, ...day.tasks] }
+          : day
+      ),
+    }));
+  };
+
   const handleEditTask = (task: WeeklyTask, dayDate: string) => {
     setSelectedDate(dayDate);
     setEditingTaskId(task.id);
@@ -365,6 +613,110 @@ function WeeklyPage() {
           : day
       ),
     }));
+  };
+
+  const allWeeklyTasks = useMemo(
+    () => weeklyWeek.days.flatMap((day) => day.tasks),
+    [weeklyWeek]
+  );
+
+  const findDayByTaskId = (taskId: string): string | null => {
+    for (const day of weeklyWeek.days) {
+      if (day.tasks.some((task) => task.id === taskId)) {
+        return day.date;
+      }
+    }
+
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveTaskId(String(event.active.id));
+  };
+
+  const handleDragCancel = () => {
+    setActiveTaskId(null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    setActiveTaskId(null);
+
+    if (!over) {
+      return;
+    }
+
+    const activeTaskId = String(active.id);
+    const overId = String(over.id);
+
+    const sourceDayDate = findDayByTaskId(activeTaskId);
+    const targetDayDate = findDayByTaskId(overId) ?? overId;
+
+    if (!sourceDayDate || !targetDayDate) {
+      return;
+    }
+
+    setWeeklyWeek((prev) => {
+      const sourceDay = prev.days.find((day) => day.date === sourceDayDate);
+      const targetDay = prev.days.find((day) => day.date === targetDayDate);
+
+      if (!sourceDay || !targetDay) {
+        return prev;
+      }
+
+      const sourceIndex = sourceDay.tasks.findIndex((task) => task.id === activeTaskId);
+      const targetIndex = targetDay.tasks.findIndex((task) => task.id === overId);
+
+      if (sourceIndex === -1) {
+        return prev;
+      }
+
+      if (sourceDayDate === targetDayDate) {
+        if (targetIndex === -1) {
+          return prev;
+        }
+
+        const reorderedTasks = arrayMove(sourceDay.tasks, sourceIndex, targetIndex).map((task) =>
+          task.id === activeTaskId
+            ? { ...task, updatedAt: new Date().toISOString() }
+            : task
+        );
+
+        return {
+          ...prev,
+          days: prev.days.map((day) =>
+            day.date === sourceDayDate ? { ...day, tasks: reorderedTasks } : day
+          ),
+        };
+      }
+
+      const movedTask = sourceDay.tasks[sourceIndex];
+
+      const newSourceTasks = sourceDay.tasks.filter((task) => task.id !== activeTaskId);
+      const newTargetTasks = [...targetDay.tasks];
+      const insertAt = targetIndex === -1 ? newTargetTasks.length : targetIndex;
+
+      newTargetTasks.splice(insertAt, 0, {
+        ...movedTask,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return {
+        ...prev,
+        days: prev.days.map((day) => {
+          if (day.date === sourceDayDate) {
+            return { ...day, tasks: newSourceTasks };
+          }
+
+          if (day.date === targetDayDate) {
+            return { ...day, tasks: newTargetTasks };
+          }
+
+          return day;
+        }),
+      };
+    });
   };
 
   const activeDayLabel =
@@ -404,27 +756,24 @@ function WeeklyPage() {
     <section className="space-y-6">
       <div className="space-y-4">
         <div>
-          <p className="mb-2 text-sm uppercase tracking-[0.24em] text-[#b08f82]">
+          <h2 className="text-2xl font-semibold tracking-tight text-[#3c312c]">
             Weekly planner
-          </p>
-          <h2 className="text-3xl font-semibold tracking-tight text-[#3c312c]">
-            Plan your week with clarity
           </h2>
+          <p className="mt-1 text-sm text-[#8d7b73]">
+            Organize your week by day, task, and checklist.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-[#eadfd7] bg-white px-4 py-3 shadow-sm">
-          <span className="rounded-full bg-[#f7ece6] px-3 py-1 text-sm font-medium text-[#7b5f55]">
-            {totalTasks} tasks
-          </span>
-          <span className="rounded-full bg-[#f8f5f2] px-3 py-1 text-sm font-medium text-[#6f625b]">
-            {completedChecklistCount} completed checklist items
-          </span>
 
           <div className="h-5 w-px bg-[#eadfd7]" />
 
           <div className="flex flex-wrap items-center gap-3">
             {categoryOptions.map((option) => (
-              <div key={option.value} className="inline-flex items-center gap-2 text-sm text-[#6f625b]">
+              <div
+                key={option.value}
+                className="inline-flex items-center gap-2 text-sm text-[#6f625b]"
+              >
                 <span className={`h-2.5 w-2.5 rounded-full ${option.dot}`} />
                 <span>{option.label}</span>
               </div>
@@ -433,7 +782,7 @@ function WeeklyPage() {
         </div>
       </div>
 
-      <section className="rounded-[28px] border border-[#eadfd7] bg-white p-5 shadow-sm">
+      <section className="rounded-[24px] border border-[#eadfd7] bg-white p-4 shadow-sm md:p-5">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-[#3c312c]">
             {editingTaskId ? `Edit task for ${activeDayLabel}` : `Add task for ${activeDayLabel}`}
@@ -443,8 +792,7 @@ function WeeklyPage() {
           </p>
         </div>
 
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
-
+        <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleSubmit}>
           <div className="relative" ref={dayDropdownRef}>
             <button
               type="button"
@@ -467,7 +815,7 @@ function WeeklyPage() {
 
             {isDayDropdownOpen ? (
               <div className="absolute left-0 right-0 z-20 mt-2 overflow-hidden rounded-[22px] border border-[#e2d4cc] bg-white shadow-[0_16px_40px_rgba(60,49,44,0.12)]">
-                <div className="p-2"> {/* 👈 NO SCROLL */}
+                <div className="p-2">
                   {weeklyWeek.days.map((day) => {
                     const isSelected = day.date === selectedDate;
 
@@ -594,7 +942,7 @@ function WeeklyPage() {
                     key={item.id}
                     className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2"
                   >
-                    <div className="flex items-center gap-3 text-sm text-[#4f433d]">
+                    <div className="flex items-center gap-3 pr-3 text-sm text-[#4f433d]">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#e6d7ce] text-[11px] text-[#9b7d72]">
                         {index + 1}
                       </span>
@@ -639,103 +987,86 @@ function WeeklyPage() {
         </form>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {weeklyWeek.days.map((day) => (
-          <div
-            key={day.date}
-            className="rounded-[28px] border border-[#eadfd7] bg-white p-4 shadow-sm"
-          >
-            <div className="mb-4">
-              <p className="text-sm uppercase tracking-[0.2em] text-[#b08f82]">{day.dayName}</p>
-              <h3 className="mt-1 text-lg font-semibold text-[#3c312c]">
-                {formatDateLabel(new Date(day.date))}
-              </h3>
-            </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <section className="overflow-hidden rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+          <div className="grid grid-cols-1 xl:grid-cols-4">
+            {weeklyWeek.days.slice(0, 4).map((day, index) => (
+             <WeeklyDayColumn
+  key={day.date}
+  day={day}
+  isLast={index === 3}
+  tasks={day.tasks}
+  onEdit={handleEditTask}
+  onDuplicate={handleDuplicateTask}
+  onDelete={handleDeleteTask}
+  onToggleChecklist={handleToggleChecklist}
+/>
+            ))}
+          </div>
 
-            <div className="space-y-3">
-              {day.tasks.length > 0 ? (
-                day.tasks.map((task) => {
-                  const categoryMeta =
-                    categoryOptions.find((option) => option.value === task.category) ?? categoryOptions[6];
-
-                  return (
-                    <div
-                      key={task.id}
-                      className={`rounded-[24px] border-[1.5px] p-4 shadow-[0_1px_2px_rgba(60,49,44,0.04)] ${categoryMeta.color}`}
-                    >
-                      <div className="mb-3">
-                        <div className="-ml-2 flex items-center justify-between gap-3">
-                          <div className="-mr-1 flex items-center gap-1.5">
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${categoryMeta.badge}`}
-                            >
-                              {categoryMeta.label}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleEditTask(task, day.date)}
-                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTask(task.id, day.date)}
-                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-
-                        {task.title ? (
-                          <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
-                            {task.title}
-                          </h4>
-                        ) : null}
-
-                        {task.notes ? (
-                          <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
-                            {task.notes}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      {task.checklist.length > 0 ? (
-                        <div className="space-y-2">
-                          {task.checklist.map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-sm text-[#4f433d]"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={item.completed}
-                                onChange={() => handleToggleChecklist(day.date, task.id, item.id)}
-                                className="h-4 w-4 accent-[#7b5f55]"
-                              />
-                              <span className={item.completed ? 'line-through opacity-60' : ''}>
-                                {item.text}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-[22px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
-                  Nothing planned here yet                </div>
-              )}
+          <div className="border-t border-[#eadfd7]">
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+              {weeklyWeek.days.slice(4).map((day, index) => (
+                <WeeklyDayColumn
+  key={day.date}
+  day={day}
+  isLast={index === 2}
+  tasks={day.tasks}
+  onEdit={handleEditTask}
+  onDuplicate={handleDuplicateTask}
+  onDelete={handleDeleteTask}
+  onToggleChecklist={handleToggleChecklist}
+/>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </section>
+        <DragOverlay>
+  {activeTaskId ? (
+    (() => {
+      const activeTask = allWeeklyTasks.find((task) => task.id === activeTaskId);
+
+      if (!activeTask) {
+        return null;
+      }
+
+      const categoryMeta =
+        categoryOptions.find((option) => option.value === activeTask.category) ??
+        categoryOptions[6];
+
+      return (
+        <div
+          className={`rotate-[1deg] rounded-[18px] border p-4 shadow-[0_20px_50px_rgba(60,49,44,0.18)] ${categoryMeta.color}`}
+        >
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${categoryMeta.badge}`}
+          >
+            {categoryMeta.label}
+          </span>
+
+          {activeTask.title ? (
+            <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
+              {activeTask.title}
+            </h4>
+          ) : null}
+
+          {activeTask.notes ? (
+            <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+              {activeTask.notes}
+            </p>
+          ) : null}
+        </div>
+      );
+    })()
+  ) : null}
+</DragOverlay>
+      </DndContext>
     </section>
   );
 }

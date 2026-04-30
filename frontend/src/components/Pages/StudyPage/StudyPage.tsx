@@ -411,12 +411,12 @@ function StudyPage() {
     <section className="space-y-6">
       <div className="space-y-4">
         <div>
-          <p className="mb-2 text-sm uppercase tracking-[0.24em] text-[#b08f82]">
+          <h2 className="text-2xl font-semibold tracking-tight text-[#3c312c]">
             Study planner
-          </p>
-          <h2 className="text-3xl font-semibold tracking-tight text-[#3c312c]">
-            Plan your study week with focus
           </h2>
+          <p className="mt-1 text-sm text-[#8d7b73]">
+            Organize your study week by day, subject, and checklist.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-[#eadfd7] bg-white px-4 py-3 shadow-sm">
@@ -661,119 +661,243 @@ function StudyPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {studyWeek.days.map((day) => (
-          <div
-            key={day.date}
-            className="rounded-[28px] border border-[#eadfd7] bg-white p-4 shadow-sm"
-          >
-            <div className="mb-4">
-              <p className="text-sm uppercase tracking-[0.2em] text-[#b08f82]">{day.dayName}</p>
-              <h3 className="mt-1 text-lg font-semibold text-[#3c312c]">
-                {formatDateLabel(new Date(day.date))}
-              </h3>
-            </div>
+      <section className="overflow-hidden rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+        <div className="grid grid-cols-1 xl:grid-cols-4">
+          {studyWeek.days.slice(0, 4).map((day, index) => (
+            <div
+              key={day.date}
+              className={`min-h-[420px] bg-white ${index !== 3 ? 'border-r border-[#eadfd7]' : ''}`}
+            >
+              <div className="border-b border-[#eadfd7] bg-[#fcfaf8] px-5 py-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#b08f82]">
+                  {day.dayName}
+                </p>
+                <h3 className="mt-1 text-base font-semibold text-[#3c312c]">
+                  {formatDateLabel(new Date(day.date))}
+                </h3>
+              </div>
 
-            <div className="space-y-3">
-              {day.tasks.length > 0 ? (
-                day.tasks.map((task) => {
-                  const subjectMeta =
-                    studySubjects.find((subjectOption) => subjectOption.value === task.subject) ??
-                    studySubjects[studySubjects.length - 1];
+              <div className="space-y-3 p-4">
+                {day.tasks.length > 0 ? (
+                  day.tasks.map((task) => {
+                    const subjectMeta =
+                      studySubjects.find((subjectOption) => subjectOption.value === task.subject) ??
+                      studySubjects[studySubjects.length - 1];
 
-                  const progress = calculateTaskProgress(task);
+                    const progress = calculateTaskProgress(task);
 
-                  return (
-                    <div
-                      key={task.id}
-                      className={`rounded-[24px] border-[1.5px] p-4 shadow-[0_1px_2px_rgba(60,49,44,0.04)] ${subjectMeta.card}`}
-                    >
-                      <div className="mb-3">
-                        <div className="-ml-2 flex items-center justify-between gap-3">
-                          <div className="-mr-1 flex items-center gap-2">
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subjectMeta.badge}`}
-                            >
-                              {subjectMeta.label}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleEditTask(task, day.date)}
-                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTask(task.id, day.date)}
-                              className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-
-                        {task.title ? (
-                          <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
-                            {task.title}
-                          </h4>
-                        ) : null}
-
-                        {task.notes ? (
-                          <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
-                            {task.notes}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <div className="mb-3">
-                        <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#6f625b]">
-                          <span>Progress</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/70">
-                          <div
-                            className="h-full rounded-full bg-[#7b5f55] transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {task.checklist.length > 0 ? (
-                        <div className="space-y-2">
-                          {task.checklist.map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-sm text-[#4f433d]"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={item.completed}
-                                onChange={() => handleToggleChecklist(day.date, task.id, item.id)}
-                                className="h-4 w-4 accent-[#7b5f55]"
-                              />
-                              <span className={item.completed ? 'line-through opacity-60' : ''}>
-                                {item.text}
+                    return (
+                      <div
+                        key={task.id}
+                        className={`rounded-[18px] border p-4 ${subjectMeta.card}`}
+                      >
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subjectMeta.badge}`}
+                              >
+                                {subjectMeta.label}
                               </span>
-                            </label>
-                          ))}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditTask(task, day.date)}
+                                className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTask(task.id, day.date)}
+                                className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+
+                          {task.title ? (
+                            <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
+                              {task.title}
+                            </h4>
+                          ) : null}
+
+                          {task.notes ? (
+                            <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+                              {task.notes}
+                            </p>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-[22px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
-                  Nothing planned here yet                </div>
-              )}
+
+                        <div className="mb-3">
+                          <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#6f625b]">
+                            <span>Progress</span>
+                            <span>{progress}%</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-white/70">
+                            <div
+                              className="h-full rounded-full bg-[#7b5f55] transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {task.checklist.length > 0 ? (
+                          <div className="space-y-2">
+                            {task.checklist.map((item) => (
+                              <label
+                                key={item.id}
+                                className="flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-sm text-[#4f433d]"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={item.completed}
+                                  onChange={() => handleToggleChecklist(day.date, task.id, item.id)}
+                                  className="h-4 w-4 accent-[#7b5f55]"
+                                />
+                                <span className={item.completed ? 'line-through opacity-60' : ''}>
+                                  {item.text}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-[18px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
+                    Nothing planned yet
+                  </div>
+                )}
+              </div>
             </div>
+          ))}
+        </div>
+
+        <div className="border-t border-[#eadfd7]">
+          <div className="grid grid-cols-1 xl:grid-cols-3">
+            {studyWeek.days.slice(4).map((day, index) => (
+              <div
+                key={day.date}
+                className={`min-h-[420px] bg-white ${index !== 2 ? 'border-r border-[#eadfd7]' : ''}`}
+              >
+                <div className="border-b border-[#eadfd7] bg-[#fcfaf8] px-5 py-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[#b08f82]">
+                    {day.dayName}
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-[#3c312c]">
+                    {formatDateLabel(new Date(day.date))}
+                  </h3>
+                </div>
+
+                <div className="space-y-3 p-4">
+                  {day.tasks.length > 0 ? (
+                    day.tasks.map((task) => {
+                      const subjectMeta =
+                        studySubjects.find((subjectOption) => subjectOption.value === task.subject) ??
+                        studySubjects[studySubjects.length - 1];
+
+                      const progress = calculateTaskProgress(task);
+
+                      return (
+                        <div
+                          key={task.id}
+                          className={`rounded-[18px] border p-4 ${subjectMeta.card}`}
+                        >
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subjectMeta.badge}`}
+                                >
+                                  {subjectMeta.label}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditTask(task, day.date)}
+                                  className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#7b5f55] transition hover:bg-white"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTask(task.id, day.date)}
+                                  className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#9b7d72] transition hover:bg-white"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+
+                            {task.title ? (
+                              <h4 className="mt-2 break-words text-base font-semibold text-[#3c312c]">
+                                {task.title}
+                              </h4>
+                            ) : null}
+
+                            {task.notes ? (
+                              <p className="mt-2 break-words text-sm leading-6 text-[#6f625b]">
+                                {task.notes}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="mb-3">
+                            <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#6f625b]">
+                              <span>Progress</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-white/70">
+                              <div
+                                className="h-full rounded-full bg-[#7b5f55] transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {task.checklist.length > 0 ? (
+                            <div className="space-y-2">
+                              {task.checklist.map((item) => (
+                                <label
+                                  key={item.id}
+                                  className="flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-sm text-[#4f433d]"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={item.completed}
+                                    onChange={() => handleToggleChecklist(day.date, task.id, item.id)}
+                                    className="h-4 w-4 accent-[#7b5f55]"
+                                  />
+                                  <span className={item.completed ? 'line-through opacity-60' : ''}>
+                                    {item.text}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-[18px] border border-dashed border-[#dfd0c7] bg-[#fcfaf8] p-4 text-center text-sm text-[#9b8a82]">
+                      Nothing planned yet
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </section>
     </section>
   );
 }
